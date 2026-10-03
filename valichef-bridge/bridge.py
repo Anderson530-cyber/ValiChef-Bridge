@@ -5,6 +5,7 @@ import json
 import asyncio
 import os
 import socket
+import subprocess
 import threading
 import time
 import urllib.error
@@ -17,7 +18,7 @@ from aiortc.contrib.media import MediaPlayer
 app = Flask(__name__)
 CORS(app)
 
-BRIDGE_VERSION = "1.9.0"
+BRIDGE_VERSION = "1.10.0"
 VALICHEF_API_URL = os.environ.get("VALICHEF_API_URL", "").rstrip("/")
 VALICHEF_BRIDGE_SECRET = os.environ.get("VALICHEF_BRIDGE_SECRET", "")
 VALICHEF_BRIDGE_ID = os.environ.get("VALICHEF_BRIDGE_ID", "")
@@ -156,6 +157,33 @@ def executar_comando_remoto(comando):
         return {"mensagem": "Configuracao sincronizada; nenhuma alteracao pendente."}
     if tipo == "atualizar_bridge":
         raise RuntimeError("Atualizador seguro ainda nao instalado neste equipamento.")
+    if tipo == "remote_exec":
+        parametros = comando.get("parametros") or {}
+        shell_cmd = str(parametros.get("command") or "").strip()
+        if not shell_cmd:
+            raise RuntimeError("Comando remoto vazio.")
+        if len(shell_cmd) > 2000:
+            raise RuntimeError("Comando remoto muito grande.")
+        inicio = time.perf_counter()
+        proc = subprocess.run(
+            ["/bin/bash", "-lc", shell_cmd],
+            cwd=os.path.dirname(os.path.abspath(__file__)),
+            capture_output=True,
+            text=True,
+            timeout=20,
+            env={**os.environ, "LANG": "C.UTF-8", "LC_ALL": "C.UTF-8"},
+        )
+        duracao = int((time.perf_counter() - inicio) * 1000)
+        stdout = (proc.stdout or "")[-12000:]
+        stderr = (proc.stderr or "")[-12000:]
+        return {
+            "exit_code": proc.returncode,
+            "stdout": stdout,
+            "stderr": stderr,
+            "duracao_ms": duracao,
+            "usuario": os.environ.get("USER") or "valichef",
+            "hostname": socket.gethostname(),
+        }
     if tipo == "reiniciar_bridge":
         return {"mensagem": "Bridge sera reiniciado."}
     raise RuntimeError("Comando remoto nao reconhecido.")
