@@ -12,7 +12,7 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 
-VERSAO = "1.9.0"
+VERSAO = "1.10.0"
 
 
 def request_json(method, url, body=None, timeout=15):
