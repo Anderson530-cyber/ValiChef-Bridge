@@ -19,7 +19,7 @@ echo "========================================"
 echo "     Instalador ValiChef Bridge 1.9.0"
 echo "========================================"
 
-if [[ ! -f "$SRC_DIR/bridge.py" || ! -f "$SRC_DIR/requirements.txt" ]]; then
+if [[ ! -f "$SRC_DIR/bridge.py" || ! -f "$SRC_DIR/requirements.txt" || ! -f "$SRC_DIR/provisionar.py" ]]; then
   echo "ERRO: arquivos do Bridge não encontrados em $SRC_DIR"
   exit 1
 fi
@@ -29,46 +29,65 @@ if [[ ! -f "$SCRIPT_DIR/valichef-bridge.service" ]]; then
   exit 1
 fi
 
-echo "[1/7] Instalando dependências do Ubuntu..."
+echo "[1/8] Instalando dependências do Ubuntu..."
 apt-get update
-DEBIAN_FRONTEND=noninteractive apt-get install -y python3 python3-venv python3-pip ffmpeg
+DEBIAN_FRONTEND=noninteractive apt-get install -y python3 python3-venv python3-pip ffmpeg ca-certificates
 
-echo "[2/7] Preparando usuário e diretórios..."
+echo "[2/8] Preparando usuário e diretórios..."
 if ! id "$APP_USER" >/dev/null 2>&1; then
   useradd -m -s /bin/bash "$APP_USER"
 fi
 mkdir -p "$APP_DIR"
 cp "$SRC_DIR/bridge.py" "$APP_DIR/bridge.py"
 cp "$SRC_DIR/requirements.txt" "$APP_DIR/requirements.txt"
+cp "$SRC_DIR/provisionar.py" "$APP_DIR/provisionar.py"
+chmod 700 "$APP_DIR/provisionar.py"
 chown -R "$APP_USER:$APP_USER" "$APP_DIR"
 
-echo "[3/7] Criando ambiente Python..."
+echo "[3/8] Criando ambiente Python..."
 rm -rf "$APP_DIR/venv"
 sudo -u "$APP_USER" python3 -m venv "$APP_DIR/venv"
 sudo -u "$APP_USER" "$APP_DIR/venv/bin/python" -m pip install --upgrade pip
 sudo -u "$APP_USER" "$APP_DIR/venv/bin/pip" install -r "$APP_DIR/requirements.txt"
 
-echo "[4/7] Instalando configuração..."
-if [[ ! -f "$ENV_FILE" ]]; then
-  cp "$SRC_DIR/valichef-bridge.env.example" "$ENV_FILE"
-  chmod 600 "$ENV_FILE"
-  echo
-  echo "ATENÇÃO: foi criado $ENV_FILE sem credenciais."
-  echo "Preencha os dados de ativação do restaurante antes do uso definitivo."
-else
-  echo "Configuração existente preservada: $ENV_FILE"
+echo "[4/8] Verificando ativação..."
+CONFIG_COMPLETA=false
+if [[ -f "$ENV_FILE" ]] \
+  && grep -q '^VALICHEF_BRIDGE_SECRET=.' "$ENV_FILE" \
+  && grep -q '^VALICHEF_BRIDGE_ID=.' "$ENV_FILE" \
+  && grep -q '^VALICHEF_RESTAURANTE_ID=.' "$ENV_FILE"; then
+  CONFIG_COMPLETA=true
 fi
 
-echo "[5/7] Instalando serviço systemd..."
+if [[ "$CONFIG_COMPLETA" == "true" ]]; then
+  echo "Configuração existente e ativada preservada: $ENV_FILE"
+else
+  rm -f "$ENV_FILE"
+  VALICHEF_API_URL="${VALICHEF_API_URL:-https://app.valichef.com.br}"
+  "$APP_DIR/venv/bin/python" "$APP_DIR/provisionar.py" \
+    --api-url "$VALICHEF_API_URL" \
+    --env-file "$ENV_FILE"
+  chmod 600 "$ENV_FILE"
+fi
+
+echo "[5/8] Instalando serviço systemd..."
 cp "$SCRIPT_DIR/valichef-bridge.service" "/etc/systemd/system/$SERVICE_NAME"
 systemctl daemon-reload
 systemctl enable "$SERVICE_NAME"
 
-echo "[6/7] Desativando suspensão/hibernação..."
+echo "[6/8] Desativando suspensão/hibernação..."
 systemctl mask sleep.target suspend.target hibernate.target hybrid-sleep.target >/dev/null 2>&1 || true
 
-echo "[7/7] Iniciando Bridge..."
+echo "[7/8] Iniciando Bridge..."
 systemctl restart "$SERVICE_NAME"
+
+echo "[8/8] Validando serviço local..."
+sleep 2
+if ! systemctl is-active --quiet "$SERVICE_NAME"; then
+  echo "ERRO: o Bridge não permaneceu ativo."
+  systemctl --no-pager --full status "$SERVICE_NAME" || true
+  exit 1
+fi
 
 echo
 echo "========================================"
