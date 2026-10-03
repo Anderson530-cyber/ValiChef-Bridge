@@ -1,90 +1,80 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-APP_NAME="valichef-bridge"
-SRC_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/valichef-bridge"
-DEST_DIR="/opt/valichef/bridge"
-SERVICE_SRC="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/valichef-bridge.service"
-SERVICE_DEST="/etc/systemd/system/valichef-bridge.service"
-ENV_DIR="/etc/valichef-bridge"
-START_FILE="${DEST_DIR}/start.sh"
+APP_USER="valichef"
+APP_HOME="/home/valichef"
+APP_DIR="$APP_HOME/valichef-bridge"
+ENV_FILE="/etc/valichef-bridge.env"
+SERVICE_NAME="valichef-bridge.service"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SRC_DIR="$SCRIPT_DIR/valichef-bridge"
 
 if [[ "${EUID}" -ne 0 ]]; then
-  echo "Execute este instalador com sudo:"
+  echo "Execute com sudo:"
   echo "  sudo ./instalar-valichef-bridge.sh"
   exit 1
 fi
 
-echo "== ValiChef Bridge Installer =="
+echo "========================================"
+echo "     Instalador ValiChef Bridge 1.9.0"
+echo "========================================"
 
-if [[ ! -d "${SRC_DIR}" ]]; then
-  echo "ERRO: pasta valichef-bridge/ não encontrada."
+if [[ ! -f "$SRC_DIR/bridge.py" || ! -f "$SRC_DIR/requirements.txt" ]]; then
+  echo "ERRO: arquivos do Bridge não encontrados em $SRC_DIR"
   exit 1
 fi
 
-if [[ ! -f "${SERVICE_SRC}" ]]; then
-  echo "ERRO: arquivo valichef-bridge.service não encontrado."
+if [[ ! -f "$SCRIPT_DIR/valichef-bridge.service" ]]; then
+  echo "ERRO: valichef-bridge.service não encontrado."
   exit 1
 fi
 
-mkdir -p "${DEST_DIR}" "${ENV_DIR}"
-cp -a "${SRC_DIR}/." "${DEST_DIR}/"
-cp "${SERVICE_SRC}" "${SERVICE_DEST}"
+echo "[1/7] Instalando dependências do Ubuntu..."
+apt-get update
+DEBIAN_FRONTEND=noninteractive apt-get install -y python3 python3-venv python3-pip ffmpeg
 
-# Gera o start.sh conforme o tipo de arquivo encontrado.
-if [[ -x "${DEST_DIR}/valichef-bridge" ]]; then
-  cat > "${START_FILE}" <<'EOF'
-#!/usr/bin/env bash
-exec /opt/valichef/bridge/valichef-bridge
-EOF
-elif [[ -f "${DEST_DIR}/index.js" ]]; then
-  if ! command -v node >/dev/null 2>&1; then
-    echo "ERRO: Node.js não está instalado."
-    exit 1
-  fi
-  cat > "${START_FILE}" <<'EOF'
-#!/usr/bin/env bash
-exec /usr/bin/env node /opt/valichef/bridge/index.js
-EOF
-elif [[ -f "${DEST_DIR}/bridge.js" ]]; then
-  if ! command -v node >/dev/null 2>&1; then
-    echo "ERRO: Node.js não está instalado."
-    exit 1
-  fi
-  cat > "${START_FILE}" <<'EOF'
-#!/usr/bin/env bash
-exec /usr/bin/env node /opt/valichef/bridge/bridge.js
-EOF
-elif [[ -f "${DEST_DIR}/main.py" ]]; then
-  if ! command -v python3 >/dev/null 2>&1; then
-    echo "ERRO: Python 3 não está instalado."
-    exit 1
-  fi
-  cat > "${START_FILE}" <<'EOF'
-#!/usr/bin/env bash
-exec /usr/bin/env python3 /opt/valichef/bridge/main.py
-EOF
+echo "[2/7] Preparando usuário e diretórios..."
+if ! id "$APP_USER" >/dev/null 2>&1; then
+  useradd -m -s /bin/bash "$APP_USER"
+fi
+mkdir -p "$APP_DIR"
+cp "$SRC_DIR/bridge.py" "$APP_DIR/bridge.py"
+cp "$SRC_DIR/requirements.txt" "$APP_DIR/requirements.txt"
+chown -R "$APP_USER:$APP_USER" "$APP_DIR"
+
+echo "[3/7] Criando ambiente Python..."
+rm -rf "$APP_DIR/venv"
+sudo -u "$APP_USER" python3 -m venv "$APP_DIR/venv"
+sudo -u "$APP_USER" "$APP_DIR/venv/bin/python" -m pip install --upgrade pip
+sudo -u "$APP_USER" "$APP_DIR/venv/bin/pip" install -r "$APP_DIR/requirements.txt"
+
+echo "[4/7] Instalando configuração..."
+if [[ ! -f "$ENV_FILE" ]]; then
+  cp "$SRC_DIR/valichef-bridge.env.example" "$ENV_FILE"
+  chmod 600 "$ENV_FILE"
+  echo
+  echo "ATENÇÃO: foi criado $ENV_FILE sem credenciais."
+  echo "Preencha os dados de ativação do restaurante antes do uso definitivo."
 else
-  echo "ERRO: não encontrei o executável principal do Bridge."
-  echo "Esperado: valichef-bridge, index.js, bridge.js ou main.py."
-  echo "Adicione os arquivos reais do Bridge em valichef-bridge/ e execute novamente."
-  exit 1
+  echo "Configuração existente preservada: $ENV_FILE"
 fi
 
-chmod +x "${START_FILE}"
-[[ -f "${DEST_DIR}/valichef-bridge" ]] && chmod +x "${DEST_DIR}/valichef-bridge" || true
+echo "[5/7] Instalando serviço systemd..."
+cp "$SCRIPT_DIR/valichef-bridge.service" "/etc/systemd/system/$SERVICE_NAME"
+systemctl daemon-reload
+systemctl enable "$SERVICE_NAME"
 
-# Evita suspensão/hibernação no mini PC operacional.
+echo "[6/7] Desativando suspensão/hibernação..."
 systemctl mask sleep.target suspend.target hibernate.target hybrid-sleep.target >/dev/null 2>&1 || true
 
-systemctl daemon-reload
-systemctl enable valichef-bridge.service
-systemctl restart valichef-bridge.service
+echo "[7/7] Iniciando Bridge..."
+systemctl restart "$SERVICE_NAME"
 
 echo
+echo "========================================"
 echo "Instalação concluída."
-echo "Status do serviço:"
-systemctl --no-pager --full status valichef-bridge.service || true
+echo "========================================"
+systemctl --no-pager --full status "$SERVICE_NAME" || true
 echo
-echo "Para acompanhar os logs:"
-echo "  journalctl -u valichef-bridge -f"
+echo "Configuração: $ENV_FILE"
+echo "Logs: journalctl -u $SERVICE_NAME -f"
