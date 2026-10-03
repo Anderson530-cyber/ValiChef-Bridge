@@ -67,13 +67,47 @@ Logs:
 journalctl -u valichef-bridge -f
 ```
 
+## BIOS/energia — configuração obrigatória
+
+O Bridge inicia automaticamente pelo `systemd`, mas o sistema operacional só consegue subir após uma queda de energia se o próprio mini PC estiver configurado para voltar a ligar quando a alimentação AC retornar.
+
+No mini PC homologado durante o teste, foi necessário configurar **as duas opções abaixo**:
+
+1. **Chipset → SoC Configuration → Restore AC Power Loss = Power On**
+2. **Advanced → Power Management Setup → EuP Function = Disabled**
+
+> Importante: somente `Restore AC Power Loss = Power On` não foi suficiente nesse equipamento. O auto power-on só funcionou depois que `EuP Function` foi alterado para `Disabled`.
+
+Os nomes e caminhos podem variar conforme a BIOS/placa-mãe. Procure equivalentes como `AC Power Recovery`, `After Power Failure`, `State After G3`, `Restore on AC Power Loss` ou `ErP/EuP`.
+
+Depois de alterar a BIOS, salve com **Save & Exit** e faça um teste físico real.
+
 ## Teste obrigatório antes de distribuição
 
-1. Fechar o Terminal e confirmar que o Bridge continua online.
-2. Imprimir uma etiqueta.
-3. Reiniciar o Ubuntu e confirmar retorno automático.
-4. Configurar a BIOS para **Power On / Restore on AC Power Loss**.
-5. Simular queda de energia.
-6. Confirmar que o mini PC liga sozinho.
-7. Confirmar Bridge e impressora online no Admin 110 Tech sem abrir Terminal.
-8. Imprimir novamente.
+1. Instalar o Bridge e confirmar `systemctl status valichef-bridge` como **active (running)**.
+2. Fechar o Terminal e confirmar que o Bridge continua online no Admin 110 Tech.
+3. Confirmar impressora online.
+4. Imprimir uma etiqueta pela web.
+5. Reiniciar o Ubuntu e, sem abrir Terminal, confirmar que Bridge e impressora voltaram online.
+6. Imprimir novamente pela web.
+7. Confirmar na BIOS:
+   - **Restore AC Power Loss = Power On**
+   - **EuP Function = Disabled** quando disponível/necessário.
+8. Com o Ubuntu totalmente iniciado, cortar a energia do mini PC.
+9. Aguardar pelo menos 10 segundos.
+10. Restaurar a energia **sem apertar o botão Power**.
+11. Confirmar que o mini PC liga sozinho.
+12. Sem abrir Terminal, confirmar no Admin 110 Tech:
+    - Bridge online;
+    - versão esperada do Bridge;
+    - impressora online.
+13. Imprimir uma etiqueta pela web.
+14. No APK Android, validar também a impressão direta com o Bridge temporariamente parado; após o teste, religar o serviço.
+
+### Critério de homologação
+
+O mini PC só deve ser considerado aprovado para instalação em cliente quando passar por este fluxo completo:
+
+`energia cai → energia volta → mini PC liga sozinho → Ubuntu inicia → Bridge sobe pelo systemd → Admin mostra online → impressora fica online → impressão web funciona`.
+
+A impressão direta pelo APK deve continuar funcionando como caminho independente da fila/Bridge.
