@@ -5,14 +5,14 @@ After=network-online.target
 
 [Service]
 Type=simple
-WorkingDirectory=/opt/valichef/bridge
-EnvironmentFile=-/etc/valichef-bridge/bridge.env
-ExecStart=/opt/valichef/bridge/start.sh
+User=valichef
+WorkingDirectory=/home/valichef/valichef-bridge
+EnvironmentFile=/etc/valichef-bridge.env
+ExecStart=/home/valichef/valichef-bridge/venv/bin/python /home/valichef/valichef-bridge/bridge.py
 Restart=always
 RestartSec=5
-TimeoutStopSec=20
-KillSignal=SIGTERM
 NoNewPrivileges=true
+PrivateTmp=true
 
 [Install]
 WantedBy=multi-user.target
