@@ -43,17 +43,40 @@ O instalador:
 
 ## Configuração/ativação
 
-Os valores reais de ativação **não ficam no GitHub**. Eles ficam somente no mini PC em:
+A ativação agora é automática e segura. Os valores reais **não ficam no GitHub** e o segredo do Bridge não é exibido no Admin.
+
+Ao executar o instalador em um mini PC novo, ele:
+
+1. gera localmente uma credencial aleatória;
+2. envia ao servidor somente o hash dessa credencial;
+3. mostra um código temporário no formato `VC-XXXXXX`;
+4. aguarda a confirmação no **Admin 110 Tech → Equipamentos → Ativar equipamento**;
+5. depois da confirmação, recebe apenas os IDs e a configuração da impressora;
+6. grava automaticamente:
 
 ```
 /etc/valichef-bridge.env
 ```
 
-Depois de preencher os dados de ativação:
+O arquivo fica com permissão `600` e contém a credencial local necessária ao Bridge.
 
-```bash
-sudo systemctl restart valichef-bridge
+### Fluxo de implantação
+
 ```
+Instalar Ubuntu
+→ configurar BIOS
+→ conectar à internet/rede do restaurante
+→ executar instalar-valichef-bridge.sh
+→ copiar o código VC-XXXXXX mostrado na tela
+→ Admin 110 Tech > Equipamentos > Ativar equipamento
+→ escolher restaurante + impressora
+→ instalador conclui automaticamente
+→ Bridge inicia pelo systemd
+```
+
+O código temporário expira em aproximadamente 30 minutos e um novo provisionamento invalida a tentativa pendente anterior do mesmo mini PC.
+
+Se o equipamento já possuir uma configuração completa em `/etc/valichef-bridge.env`, o instalador preserva essa configuração e não exige nova ativação.
 
 ## Verificar
 
