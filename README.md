@@ -1,64 +1,79 @@
 # ValiChef Bridge
 
-Pacote oficial de instalação do **ValiChef Bridge** para mini PCs Linux/Ubuntu usados nos restaurantes.
+Pacote oficial do Bridge Linux/Ubuntu usado nos mini PCs dos restaurantes.
 
-## Estrutura
+## Conteúdo
 
 ```
-VALICHEF-BRIDGE/
+ValiChef-Bridge/
 ├── instalar-valichef-bridge.sh
 ├── valichef-bridge.service
-├── README.md
 └── valichef-bridge/
-    ├── config.example
-    └── README.md
+    ├── bridge.py
+    ├── requirements.txt
+    └── valichef-bridge.env.example
 ```
 
-## Objetivo
+## Versão
 
-Após a instalação, o Bridge deve:
+Pacote preparado como **ValiChef Bridge 1.9.0**.
 
-- iniciar automaticamente com o Ubuntu;
-- continuar funcionando sem Terminal aberto;
-- reiniciar automaticamente se o processo falhar;
-- voltar sozinho após reinicialização ou queda de energia, desde que a BIOS esteja configurada para ligar após retorno da energia;
-- manter a comunicação com o Admin 110 Tech;
-- operar como fallback de impressão quando necessário.
+O código foi obtido do mini PC de teste. Durante a revisão foram corrigidas duas inconsistências do arquivo encontrado no equipamento: o código ainda declarava a versão 1.6.0 e a função de heartbeat existia, mas não era iniciada no bloco principal.
 
-## Instalação no mini PC
+## Instalação em um mini PC novo
 
-1. Baixe este repositório como ZIP no GitHub.
-2. Extraia a pasta para o pendrive.
-3. No mini PC com Ubuntu, abra a pasta pelo Terminal.
-4. Execute:
+Depois de instalar o Ubuntu:
 
 ```bash
 chmod +x instalar-valichef-bridge.sh
 sudo ./instalar-valichef-bridge.sh
 ```
 
-O instalador copia os arquivos para `/opt/valichef/bridge`, instala o serviço `systemd` e o habilita para iniciar no boot.
+O instalador:
 
-## Verificar status
+- instala Python, venv, pip e ffmpeg;
+- cria o usuário `valichef` quando necessário;
+- instala o Bridge em `/home/valichef/valichef-bridge`;
+- recria o ambiente virtual;
+- instala as dependências;
+- instala e habilita o serviço `systemd`;
+- impede suspensão/hibernação do mini PC;
+- preserva uma configuração existente;
+- cria `/etc/valichef-bridge.env` a partir do exemplo quando ainda não existe.
 
-```bash
-systemctl status valichef-bridge --no-pager
+## Configuração/ativação
+
+Os valores reais de ativação **não ficam no GitHub**. Eles ficam somente no mini PC em:
+
+```
+/etc/valichef-bridge.env
 ```
 
-## Ver logs
-
-```bash
-journalctl -u valichef-bridge -f
-```
-
-## Reiniciar o Bridge
+Depois de preencher os dados de ativação:
 
 ```bash
 sudo systemctl restart valichef-bridge
 ```
 
-## Importante
+## Verificar
 
-O diretório `valichef-bridge/` precisa conter os **arquivos reais da versão do Bridge que será instalada**. Não coloque chaves, tokens ou senhas diretamente neste repositório. Dados de ativação devem ficar no mini PC, fora do GitHub.
+```bash
+systemctl status valichef-bridge --no-pager
+```
 
-A primeira versão que vamos validar é a **1.9.0** atualmente usada no mini PC de teste. Depois do teste real, o pacote poderá ser versionado para distribuição.
+Logs:
+
+```bash
+journalctl -u valichef-bridge -f
+```
+
+## Teste obrigatório antes de distribuição
+
+1. Fechar o Terminal e confirmar que o Bridge continua online.
+2. Imprimir uma etiqueta.
+3. Reiniciar o Ubuntu e confirmar retorno automático.
+4. Configurar a BIOS para **Power On / Restore on AC Power Loss**.
+5. Simular queda de energia.
+6. Confirmar que o mini PC liga sozinho.
+7. Confirmar Bridge e impressora online no Admin 110 Tech sem abrir Terminal.
+8. Imprimir novamente.
