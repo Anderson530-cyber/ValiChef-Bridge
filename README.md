@@ -134,3 +134,33 @@ O mini PC só deve ser considerado aprovado para instalação em cliente quando 
 `energia cai → energia volta → mini PC liga sozinho → Ubuntu inicia → Bridge sobe pelo systemd → Admin mostra online → impressora fica online → impressão web funciona`.
 
 A impressão direta pelo APK deve continuar funcionando como caminho independente da fila/Bridge.
+
+
+## Acesso remoto pelo Admin 110 Tech
+
+A partir do Bridge **1.10.0**, o mini PC pode receber comandos administrativos pelo mesmo canal autenticado que já processa diagnóstico e controle remoto.
+
+Fluxo:
+
+```
+Admin 110 Tech
+→ Equipamentos
+→ selecionar o Bridge
+→ Acesso remoto
+→ Console remoto
+→ comando entra em bridge_comandos
+→ Bridge consulta a fila autenticada
+→ comando é executado localmente
+→ saída, erro, código de retorno e duração voltam ao Admin
+```
+
+Características de segurança:
+- nenhuma porta SSH/RDP é aberta automaticamente na internet;
+- o Bridge continua iniciando conexões de saída para o backend;
+- o comando roda como o usuário do serviço `valichef`, não como `root`;
+- execução limitada a 20 segundos por comando;
+- stdout/stderr são limitados antes de serem enviados ao backend;
+- os comandos ficam registrados em `bridge_comandos` para auditoria;
+- ações privilegiadas do sistema devem continuar sendo implementadas como comandos específicos e controlados, em vez de liberar root permanente.
+
+Atalhos do Admin incluem status do PC, status do serviço, últimos logs e informações de rede.
