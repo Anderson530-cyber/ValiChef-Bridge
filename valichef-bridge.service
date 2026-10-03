@@ -1,0 +1,18 @@
+[Unit]
+Description=ValiChef Bridge
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/valichef/bridge
+EnvironmentFile=-/etc/valichef-bridge/bridge.env
+ExecStart=/opt/valichef/bridge/start.sh
+Restart=always
+RestartSec=5
+TimeoutStopSec=20
+KillSignal=SIGTERM
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target
