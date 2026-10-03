@@ -18,11 +18,11 @@ from aiortc.contrib.media import MediaPlayer
 app = Flask(__name__)
 CORS(app)
 
-BRIDGE_VERSION = "1.10.0"
+BRIDGE_VERSION = "1.10.1"
 VALICHEF_API_URL = os.environ.get("VALICHEF_API_URL", "").rstrip("/")
 VALICHEF_BRIDGE_SECRET = os.environ.get("VALICHEF_BRIDGE_SECRET", "")
 VALICHEF_BRIDGE_ID = os.environ.get("VALICHEF_BRIDGE_ID", "")
-HEARTBEAT_INTERVAL = int(os.environ.get("VALICHEF_HEARTBEAT_INTERVAL", "30"))
+HEARTBEAT_INTERVAL = max(5, min(int(os.environ.get("VALICHEF_HEARTBEAT_INTERVAL", "10")), 10))
 VALICHEF_RESTAURANTE_ID = os.environ.get("VALICHEF_RESTAURANTE_ID", "")
 VALICHEF_IMPRESSORA_ID = os.environ.get("VALICHEF_IMPRESSORA_ID", "")
 
