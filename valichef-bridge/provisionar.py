@@ -12,7 +12,7 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 
-VERSAO = "1.10.0"
+VERSAO = "1.10.1"
 
 
 def request_json(method, url, body=None, timeout=15):
@@ -66,7 +66,7 @@ def write_env(path, values):
         f"VALICHEF_PRINTER_HOST={values.get('printer_host') or ''}",
         f"VALICHEF_PRINTER_PORT={values.get('printer_port') or 9100}",
         "",
-        "VALICHEF_HEARTBEAT_INTERVAL=30",
+        "VALICHEF_HEARTBEAT_INTERVAL=10",
         "VALICHEF_QUEUE_INTERVAL=0.25",
         "VALICHEF_CAMERA_SESSION_INTERVAL=0.5",
         "VALICHEF_CAMERA_PASSWORDS_JSON={}",
