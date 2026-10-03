@@ -16,7 +16,7 @@ if [[ "${EUID}" -ne 0 ]]; then
 fi
 
 echo "========================================"
-echo "     Instalador ValiChef Bridge 1.9.0"
+echo "     Instalador ValiChef Bridge 1.10.0"
 echo "========================================"
 
 if [[ ! -f "$SRC_DIR/bridge.py" || ! -f "$SRC_DIR/requirements.txt" || ! -f "$SRC_DIR/provisionar.py" ]]; then
