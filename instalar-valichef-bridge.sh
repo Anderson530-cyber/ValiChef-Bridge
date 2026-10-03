@@ -78,3 +78,28 @@ systemctl --no-pager --full status "$SERVICE_NAME" || true
 echo
 echo "Configuração: $ENV_FILE"
 echo "Logs: journalctl -u $SERVICE_NAME -f"
+echo
+echo "========================================"
+echo "CHECKLIST OBRIGATÓRIO DE BIOS / ENERGIA"
+echo "========================================"
+echo "O instalador NÃO consegue alterar a BIOS automaticamente."
+echo
+echo "No mini PC homologado:"
+echo "  1) Chipset > SoC Configuration"
+echo "     Restore AC Power Loss = Power On"
+echo "  2) Advanced > Power Management Setup"
+echo "     EuP Function = Disabled"
+echo
+echo "IMPORTANTE: neste hardware, Power On sozinho não bastou;"
+echo "o auto power-on só funcionou com EuP Function = Disabled."
+echo
+echo "Teste final obrigatório:"
+echo "  - deixe o Ubuntu iniciar completamente"
+echo "  - corte a energia com o mini PC ligado"
+echo "  - aguarde pelo menos 10 segundos"
+echo "  - restaure a energia sem apertar o botão Power"
+echo "  - confirme que o mini PC liga sozinho"
+echo "  - confirme Bridge + impressora online no Admin 110 Tech"
+echo "  - imprima uma etiqueta pela web"
+echo
+echo "Somente depois desse teste o mini PC deve ser considerado homologado."
