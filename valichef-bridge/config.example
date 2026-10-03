@@ -1,0 +1,9 @@
+# Exemplo de configuração local do ValiChef Bridge.
+# NÃO coloque tokens, senhas ou chaves reais neste repositório.
+#
+# O instalador e o Bridge definitivo deverão usar o fluxo de ativação
+# do Admin 110 Tech e persistir os dados sensíveis somente no mini PC.
+#
+# Exemplo:
+# VALICHEF_BRIDGE_VERSION=1.9.0
+# VALICHEF_API_URL=https://...
