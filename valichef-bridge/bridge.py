@@ -18,7 +18,7 @@ from aiortc.contrib.media import MediaPlayer
 app = Flask(__name__)
 CORS(app)
 
-BRIDGE_VERSION = "1.12.1"
+BRIDGE_VERSION = "1.12.2"
 VALICHEF_API_URL = os.environ.get("VALICHEF_API_URL", "").rstrip("/")
 VALICHEF_BRIDGE_SECRET = os.environ.get("VALICHEF_BRIDGE_SECRET", "")
 VALICHEF_BRIDGE_ID = os.environ.get("VALICHEF_BRIDGE_ID", "")
@@ -231,7 +231,18 @@ def executar_comando_remoto(comando):
     if tipo == "sincronizar_configuracao":
         return {"mensagem": "Configuracao sincronizada; nenhuma alteracao pendente."}
     if tipo == "atualizar_bridge":
-        raise RuntimeError("Atualizador seguro ainda nao instalado neste equipamento.")
+        script = os.path.join(os.path.dirname(os.path.abspath(__file__)), "atualizar-bridge.sh")
+        if not os.path.exists(script):
+            raise RuntimeError("Atualizador seguro nao instalado. Execute a instalacao inicial do atualizador.")
+        proc = subprocess.Popen(
+            ["/bin/bash", script],
+            cwd=os.path.dirname(os.path.abspath(__file__)),
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            start_new_session=True,
+            env={**os.environ, "VALICHEF_CURRENT_VERSION": BRIDGE_VERSION},
+        )
+        return {"mensagem": "Atualizacao iniciada. O Bridge vai reiniciar automaticamente.", "pid": proc.pid, "versao_atual": BRIDGE_VERSION}
     if tipo == "remote_exec":
         parametros = comando.get("parametros") or {}
         shell_cmd = str(parametros.get("command") or "").strip()
