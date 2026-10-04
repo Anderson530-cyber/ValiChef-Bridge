@@ -16,7 +16,7 @@ if [[ "${EUID}" -ne 0 ]]; then
 fi
 
 echo "========================================"
-echo "     Instalador ValiChef Bridge 1.10.1"
+echo "     Instalador ValiChef Bridge 1.12.0"
 echo "========================================"
 
 if [[ ! -f "$SRC_DIR/bridge.py" || ! -f "$SRC_DIR/requirements.txt" || ! -f "$SRC_DIR/provisionar.py" ]]; then
@@ -29,11 +29,25 @@ if [[ ! -f "$SCRIPT_DIR/valichef-bridge.service" ]]; then
   exit 1
 fi
 
-echo "[1/8] Instalando dependências do Ubuntu..."
+echo "[1/8] Gerando código de ativação..."
+VALICHEF_API_URL="${VALICHEF_API_URL:-https://app.valichef.com.br}"
+TMP_PROVISION="/tmp/valichef-provisionar.py"
+cp "$SRC_DIR/provisionar.py" "$TMP_PROVISION"
+chmod 700 "$TMP_PROVISION"
+
+echo
+echo "Nenhuma instalação permanente será feita antes da autorização no Admin 110 Tech."
+echo "Gerando o código deste mini PC..."
+echo
+python3 "$TMP_PROVISION" --api-url "$VALICHEF_API_URL" --env-file "$ENV_FILE"
+rm -f "$TMP_PROVISION"
+
+echo
+echo "[2/8] Autorização recebida. Instalando dependências do Ubuntu..."
 apt-get update
 DEBIAN_FRONTEND=noninteractive apt-get install -y python3 python3-venv python3-pip ffmpeg ca-certificates
 
-echo "[2/8] Preparando usuário e diretórios..."
+echo "[3/8] Preparando usuário e arquivos do Bridge..."
 if ! id "$APP_USER" >/dev/null 2>&1; then
   useradd -m -s /bin/bash "$APP_USER"
 fi
@@ -43,32 +57,13 @@ cp "$SRC_DIR/requirements.txt" "$APP_DIR/requirements.txt"
 cp "$SRC_DIR/provisionar.py" "$APP_DIR/provisionar.py"
 chmod 700 "$APP_DIR/provisionar.py"
 chown -R "$APP_USER:$APP_USER" "$APP_DIR"
+chmod 600 "$ENV_FILE"
 
-echo "[3/8] Criando ambiente Python..."
+echo "[4/8] Criando ambiente Python..."
 rm -rf "$APP_DIR/venv"
 sudo -u "$APP_USER" python3 -m venv "$APP_DIR/venv"
 sudo -u "$APP_USER" "$APP_DIR/venv/bin/python" -m pip install --upgrade pip
 sudo -u "$APP_USER" "$APP_DIR/venv/bin/pip" install -r "$APP_DIR/requirements.txt"
-
-echo "[4/8] Verificando ativação..."
-CONFIG_COMPLETA=false
-if [[ -f "$ENV_FILE" ]] \
-  && grep -q '^VALICHEF_BRIDGE_SECRET=.' "$ENV_FILE" \
-  && grep -q '^VALICHEF_BRIDGE_ID=.' "$ENV_FILE" \
-  && grep -q '^VALICHEF_RESTAURANTE_ID=.' "$ENV_FILE"; then
-  CONFIG_COMPLETA=true
-fi
-
-if [[ "$CONFIG_COMPLETA" == "true" ]]; then
-  echo "Configuração existente e ativada preservada: $ENV_FILE"
-else
-  rm -f "$ENV_FILE"
-  VALICHEF_API_URL="${VALICHEF_API_URL:-https://app.valichef.com.br}"
-  "$APP_DIR/venv/bin/python" "$APP_DIR/provisionar.py" \
-    --api-url "$VALICHEF_API_URL" \
-    --env-file "$ENV_FILE"
-  chmod 600 "$ENV_FILE"
-fi
 
 echo "[5/8] Instalando serviço systemd..."
 cp "$SCRIPT_DIR/valichef-bridge.service" "/etc/systemd/system/$SERVICE_NAME"
