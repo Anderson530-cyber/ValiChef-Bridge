@@ -125,12 +125,12 @@ def main():
     print(f"                     {codigo}")
     print()
     print("No Admin 110 Tech:")
-    print("  Equipamentos > Ativar equipamento")
+    print("  Equipamentos > Ativar Bridge")
     print("  1. Digite o código acima")
     print("  2. Escolha o restaurante")
     print("  3. Confirme a ativação")
     print()
-    print("Depois da ativação, a impressora é localizada e vinculada pelo Bridge.")
+    print("Primeiro o Bridge é instalado e ativado. A impressora é vinculada somente na etapa seguinte.")
     print()
     print("O instalador está aguardando. Não feche esta janela.")
     print("============================================================")
@@ -163,7 +163,7 @@ def main():
                 },
             )
             print()
-            print("Ativação concluída com sucesso.")
+            print("Ativação concluída com sucesso.")\n            codigo_bridge = str(atual.get("codigo_equipamento") or atual.get("bridge_codigo") or "")\n            if codigo_bridge:\n                print(f"Bridge permanente: {codigo_bridge}")
             print(f"Configuração gravada com segurança em {args.env_file}")
             if impressora:
                 print(
