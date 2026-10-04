@@ -18,7 +18,7 @@ from aiortc.contrib.media import MediaPlayer
 app = Flask(__name__)
 CORS(app)
 
-BRIDGE_VERSION = "1.11.0"
+BRIDGE_VERSION = "1.12.1"
 VALICHEF_API_URL = os.environ.get("VALICHEF_API_URL", "").rstrip("/")
 VALICHEF_BRIDGE_SECRET = os.environ.get("VALICHEF_BRIDGE_SECRET", "")
 VALICHEF_BRIDGE_ID = os.environ.get("VALICHEF_BRIDGE_ID", "")
