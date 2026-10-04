@@ -170,15 +170,14 @@ def descobrir_impressoras_rede():
 
 
 def etiqueta_teste_valichef(codigo):
-    # Etiqueta de diagnostico isolada. Nao altera o comando/layout das etiquetas normais.
+    # Etiqueta exclusiva de teste. Nao altera o layout das etiquetas operacionais.
     codigo = str(codigo or "IMPRESSORA").strip().upper()
-    titulo = f"ValiChef-{codigo}"
     return (
         "^XA"
         "^PW480^LL480"
-        "^FO35,145^A0N,42,42^FD" + titulo + "^FS"
-        "^FO35,220^A0N,64,64^FDA T I V O^FS"
-        "^FO35,310^A0N,24,24^FDTeste de comunicacao ValiChef^FS"
+        "^FO0,120^A0N,64,64^FB480,1,0,C,0^FDVALICHEF^FS"
+        "^FO0,205^A0N,38,38^FB480,1,0,C,0^FD" + codigo + "^FS"
+        "^FO0,275^A0N,54,54^FB480,1,0,C,0^FDATIVO^FS"
         "^XZ"
     )
 
