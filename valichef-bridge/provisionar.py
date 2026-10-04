@@ -12,7 +12,7 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 
-VERSAO = "1.10.1"
+VERSAO = "1.11.0"
 
 
 def request_json(method, url, body=None, timeout=15):
@@ -128,8 +128,9 @@ def main():
     print("  Equipamentos > Ativar equipamento")
     print("  1. Digite o código acima")
     print("  2. Escolha o restaurante")
-    print("  3. Escolha a impressora")
-    print("  4. Confirme a ativação")
+    print("  3. Confirme a ativação")
+    print()
+    print("Depois da ativação, a impressora é localizada e vinculada pelo Bridge.")
     print()
     print("O instalador está aguardando. Não feche esta janela.")
     print("============================================================")
