@@ -163,7 +163,18 @@ def main():
                 },
             )
             print()
-            print("Ativação concluída com sucesso.")\n            codigo_bridge = str(atual.get("codigo_equipamento") or atual.get("bridge_codigo") or "")\n            if codigo_bridge:\n                print(f"Bridge permanente: {codigo_bridge}")
+            print("Ativação concluída com sucesso.")
+            codigo_bridge = str(atual.get("codigo_equipamento") or atual.get("bridge_codigo") or "")
+            if codigo_bridge:
+                numero_bridge = codigo_bridge[4:] if codigo_bridge.startswith("BRG-") else codigo_bridge
+                print()
+                print("============================================================")
+                print("              BRIDGE AUTORIZADO COM SUCESSO")
+                print("============================================================")
+                print(f"              CÓDIGO: {codigo_bridge}")
+                print(f"              NÚMERO: {numero_bridge}")
+                print("============================================================")
+                print("Autorização recebida. O instalador continuará automaticamente.")
             print(f"Configuração gravada com segurança em {args.env_file}")
             if impressora:
                 print(
