@@ -29,6 +29,16 @@ VALICHEF_IMPRESSORA_ID = os.environ.get("VALICHEF_IMPRESSORA_ID", "")
 # A impressora fica em configuracao, nao presa ao codigo.
 PRINTER_HOST = os.environ.get("VALICHEF_PRINTER_HOST", "")
 PRINTER_PORT = int(os.environ.get("VALICHEF_PRINTER_PORT", "9100"))
+PRINTER_CONFIG_FILE = os.environ.get("VALICHEF_PRINTER_CONFIG_FILE", os.path.join(os.path.dirname(os.path.abspath(__file__)), ".printer-config.json"))
+try:
+    if os.path.exists(PRINTER_CONFIG_FILE):
+        with open(PRINTER_CONFIG_FILE, "r", encoding="utf-8") as arq:
+            _pcfg = json.load(arq)
+        PRINTER_HOST = str(_pcfg.get("host") or PRINTER_HOST)
+        PRINTER_PORT = int(_pcfg.get("porta") or PRINTER_PORT)
+        VALICHEF_IMPRESSORA_ID = str(_pcfg.get("impressora_id") or VALICHEF_IMPRESSORA_ID)
+except Exception as erro:
+    print(f"Nao foi possivel carregar configuracao local da impressora: {erro}")
 INTERVALO_FILA_SEGUNDOS = max(0.25, float(os.environ.get("VALICHEF_QUEUE_INTERVAL", "0.25")))
 CAMERA_SESSION_INTERVAL = max(0.25, float(os.environ.get("VALICHEF_CAMERA_SESSION_INTERVAL", "0.5")))
 CAMERA_RTSP_PASSWORDS = {}
@@ -173,6 +183,19 @@ def etiqueta_teste_valichef(codigo):
     )
 
 
+def salvar_configuracao_impressora(impressora_id, host, porta=9100):
+    global VALICHEF_IMPRESSORA_ID, PRINTER_HOST, PRINTER_PORT
+    testar_socket_impressora(host, porta)
+    dados = {"impressora_id": str(impressora_id), "host": str(host), "porta": int(porta)}
+    tmp = PRINTER_CONFIG_FILE + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as arq:
+        json.dump(dados, arq)
+    os.replace(tmp, PRINTER_CONFIG_FILE)
+    VALICHEF_IMPRESSORA_ID = dados["impressora_id"]
+    PRINTER_HOST = dados["host"]
+    PRINTER_PORT = dados["porta"]
+
+
 def executar_comando_remoto(comando):
     tipo = comando.get("tipo")
     parametros = comando.get("parametros") or {}
@@ -184,6 +207,14 @@ def executar_comando_remoto(comando):
     if tipo == "procurar_impressoras":
         encontrados = descobrir_impressoras_rede()
         return {"mensagem": f"{len(encontrados)} impressora(s) encontrada(s) na rede.", "impressoras": encontrados}
+    if tipo == "configurar_impressora":
+        iid = parametros.get("impressora_id")
+        host = parametros.get("ip")
+        porta = int(parametros.get("porta") or 9100)
+        if not iid or not host:
+            raise RuntimeError("Dados da impressora incompletos.")
+        salvar_configuracao_impressora(iid, host, porta)
+        return {"mensagem": f"Impressora {parametros.get('codigo_impressora') or iid} vinculada ao Bridge."}
     if tipo == "diagnostico":
         printer = "nao_configurada"
         if configuracao_impressora_completa():
