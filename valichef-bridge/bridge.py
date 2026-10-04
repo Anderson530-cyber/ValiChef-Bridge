@@ -18,7 +18,7 @@ from aiortc.contrib.media import MediaPlayer
 app = Flask(__name__)
 CORS(app)
 
-BRIDGE_VERSION = "1.10.1"
+BRIDGE_VERSION = "1.11.0"
 VALICHEF_API_URL = os.environ.get("VALICHEF_API_URL", "").rstrip("/")
 VALICHEF_BRIDGE_SECRET = os.environ.get("VALICHEF_BRIDGE_SECRET", "")
 VALICHEF_BRIDGE_ID = os.environ.get("VALICHEF_BRIDGE_ID", "")
@@ -134,11 +134,56 @@ def enviar_heartbeat():
         time.sleep(max(HEARTBEAT_INTERVAL, 10))
 
 
+def descobrir_impressoras_rede():
+    """Procura impressoras RAW na mesma rede /24 sem alterar a configuracao atual."""
+    alvo = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        alvo.connect(("8.8.8.8", 80))
+        ip_local = alvo.getsockname()[0]
+    finally:
+        alvo.close()
+    prefixo = ".".join(ip_local.split(".")[:3])
+    encontrados = []
+    def testar_ip(n):
+        ip = f"{prefixo}.{n}"
+        try:
+            with socket.create_connection((ip, 9100), timeout=0.18):
+                return {"ip": ip, "porta": 9100}
+        except Exception:
+            return None
+    from concurrent.futures import ThreadPoolExecutor
+    with ThreadPoolExecutor(max_workers=48) as pool:
+        for item in pool.map(testar_ip, range(1, 255)):
+            if item:
+                encontrados.append(item)
+    return encontrados
+
+
+def etiqueta_teste_valichef(codigo):
+    # Etiqueta de diagnostico isolada. Nao altera o comando/layout das etiquetas normais.
+    codigo = str(codigo or "IMPRESSORA").strip().upper()
+    titulo = f"ValiChef-{codigo}"
+    return (
+        "^XA"
+        "^PW480^LL480"
+        "^FO35,145^A0N,42,42^FD" + titulo + "^FS"
+        "^FO35,220^A0N,64,64^FDA T I V O^FS"
+        "^FO35,310^A0N,24,24^FDTeste de comunicacao ValiChef^FS"
+        "^XZ"
+    )
+
+
 def executar_comando_remoto(comando):
     tipo = comando.get("tipo")
+    parametros = comando.get("parametros") or {}
     if tipo == "testar_impressora":
         testar_socket_impressora()
-        return {"mensagem": "Impressora acessivel pela rede."}
+        codigo = parametros.get("codigo_impressora") or VALICHEF_IMPRESSORA_ID or "IMPRESSORA"
+        imprimir_raw(etiqueta_teste_valichef(codigo))
+        return {"mensagem": f"Etiqueta de teste enviada para {codigo}."}
+    if tipo == "procurar_impressoras":
+        encontrados = descobrir_impressoras_rede()
+        return {"mensagem": f"{len(encontrados)} impressora(s) encontrada(s) na rede.", "impressoras": encontrados}
     if tipo == "diagnostico":
         printer = "nao_configurada"
         if configuracao_impressora_completa():
