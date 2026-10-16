@@ -270,6 +270,19 @@ def executar_comando_remoto(comando):
             "usuario": os.environ.get("USER") or "valichef",
             "hostname": socket.gethostname(),
         }
+    if tipo == "reiniciar_mini_pc":
+        # Somente o helper instalado pelo administrador pode reiniciar o host.
+        # Nao executamos comandos arbitrarios nem solicitamos senha via painel.
+        helper = "/usr/local/sbin/valichef-reiniciar-mini-pc"
+        if not os.path.isfile(helper):
+            raise RuntimeError("Reinicio remoto do mini PC nao habilitado neste equipamento.")
+        proc = subprocess.run(
+            ["/usr/bin/sudo", "-n", helper],
+            capture_output=True, text=True, timeout=10,
+        )
+        if proc.returncode != 0:
+            raise RuntimeError("Reinicio nao autorizado ou falhou; verifique configuracao local.")
+        return {"mensagem": "Solicitacao de reinicio do mini PC aceita."}
     if tipo == "reiniciar_bridge":
         return {"mensagem": "Bridge sera reiniciado."}
     raise RuntimeError("Comando remoto nao reconhecido.")
